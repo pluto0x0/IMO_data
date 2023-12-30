@@ -5,9 +5,10 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 import warnings
+import sys
 
 def get_problem(url: str) -> str:
-    def elems2data(url: str, elems: list, markdown = True) -> list[dict]:
+    def elems2data(cur_url: str, elems: list, markdown = True) -> list[dict]:
         graphs = []
         texts = ''
         for elem in elems:
@@ -26,7 +27,7 @@ def get_problem(url: str) -> str:
                 for img in imgs:
                     img.replace_with(img['alt'])
             elif imgs := elem.find_all('img'):  # graphs
-                graphs += [urljoin(url, img['src']) for img in imgs]
+                graphs += [urljoin(cur_url, img['src']) for img in imgs]
             if text := elem.get_text():
                 texts += text
         return {'graphs': graphs, 'text': texts}
@@ -36,8 +37,8 @@ def get_problem(url: str) -> str:
             or re.search(r'problem', subtitle, re.I)) \
         and not re.search(r'video', subtitle, re.I)
 
-    main_page_html = requests.get(url).content.decode('utf-8')
-    soup = BeautifulSoup(main_page_html, 'html.parser')
+    problem_html = requests.get(url).content.decode('utf-8')
+    soup = BeautifulSoup(problem_html, 'html.parser')
     inner_div = soup.find('div', class_='mw-parser-output')
     if toc := inner_div.find('div', id='toc'):
         toc.extract()   # remove toc
@@ -66,12 +67,18 @@ def get_problem(url: str) -> str:
 if __name__ == "__main__":
     main_page_url = r'https://artofproblemsolving.com/wiki/index.php/IMO_Problems_and_Solutions'
     output_filename = 'data.json'
+    if len(sys.argv) > 2:
+        warnings.warn('Too Many Arguments', UserWarning)
+        exit(0)
+    elif len(sys.argv) == 2:
+        output_filename = sys.argv[1]
 
     main_page_html = requests.get(main_page_url).content.decode('utf-8')
     problem_reg = re.compile(r'(/wiki/index.php/(\d{4})_IMO_Problems/Problem_(\d+))', re.M)
     problem_urls = problem_reg.findall(main_page_html)
 
     print(f'{len(problem_urls)} Problems')
+    print(f'Write to: {output_filename}')
 
     data = dict()
     for url, year, no in tqdm(problem_urls):
