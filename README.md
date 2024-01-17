@@ -21,6 +21,8 @@ python main.py output_file.json
 
 ### Sample
 
+**(See [data.json](./data.json) for full data)**
+
 ```json
 {
     "2019": {
